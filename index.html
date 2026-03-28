@@ -300,7 +300,10 @@
             </div>
           </form>
           <div class="summary-list section-gap" id="budgetRollup"></div>
-          <div class="budget-cards" id="budgetPlanCards"></div>
+          <table>
+            <thead><tr><th>Category</th><th>Planned</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead>
+            <tbody id="budgetPlanTable"></tbody>
+          </table>
         </section>
 
         <section class="card span-12">
@@ -839,51 +842,25 @@
     }
 
     function renderBudgetPlan() {
-      const cards = document.getElementById('budgetPlanCards');
+      const tbody = document.getElementById('budgetPlanTable');
       const categories = Array.from(new Set([...Object.keys(state.budgets), ...state.transactions.filter(t=>t.type==='expense').map(t=>t.category)])).sort();
       const spentByCategory = {};
       state.transactions.filter(t=>t.type==='expense').forEach(t => spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Number(t.amount));
       const totalPlanned = Object.values(state.budgets).reduce((s,v)=>s + Number(v), 0);
       const totalSpent = Object.values(spentByCategory).reduce((s,v)=>s + Number(v), 0);
-      const totalRemaining = totalPlanned - totalSpent;
       document.getElementById('budgetRollup').innerHTML = `
         <div class="summary-item"><div class="recommend-line"><strong>Total Planned</strong><strong>${currency(totalPlanned)}</strong></div></div>
         <div class="summary-item"><div class="recommend-line"><strong>Total Spent</strong><strong>${currency(totalSpent)}</strong></div></div>
-        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalRemaining >= 0 ? 'good' : 'bad'}">${currency(totalRemaining)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalPlanned - totalSpent >= 0 ? 'good' : 'bad'}">${currency(totalPlanned - totalSpent)}</strong></div></div>
       `;
-      if (!categories.length) {
-        cards.innerHTML = `<div class="allocation-item muted">Add budget plans or expenses to see this section.</div>`;
-        return;
-      }
-      cards.innerHTML = categories.map(cat => {
+      if (!categories.length) { tbody.innerHTML = `<tr><td colspan="5" class="muted">Add budget plans or expenses to see this section.</td></tr>`; return; }
+      tbody.innerHTML = categories.map(cat => {
         const planned = Number(state.budgets[cat] || 0);
         const spent = Number(spentByCategory[cat] || 0);
         const remaining = planned - spent;
-        const percent = planned > 0 ? Math.min((spent / planned) * 100, 100) : 0;
         const status = planned === 0 ? 'No plan set' : remaining < 0 ? 'Over budget' : remaining < planned * 0.2 ? 'Near limit' : 'On track';
         const klass = status === 'Over budget' ? 'bad' : status === 'Near limit' ? 'warn' : 'good';
-        return `
-          <div class="budget-category-card">
-            <div class="recommend-line">
-              <strong>${cat}</strong>
-              <strong class="${klass}">${status}</strong>
-            </div>
-            <div class="budget-metrics">
-              <div class="budget-metric">
-                <div class="label">Planned</div>
-                <div class="value">${currency(planned)}</div>
-              </div>
-              <div class="budget-metric">
-                <div class="label">Spent</div>
-                <div class="value">${currency(spent)}</div>
-              </div>
-              <div class="budget-metric">
-                <div class="label">Remaining</div>
-                <div class="value ${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</div>
-              </div>
-            </div>
-            <div class="budget-bar"><span style="width:${percent}%"></span></div>
-          </div>`;
+        return `<tr><td>${cat}</td><td>${currency(planned)}</td><td>${currency(spent)}</td><td class="${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</td><td class="${klass}">${status}</td></tr>`;
       }).join('');
     }
 
