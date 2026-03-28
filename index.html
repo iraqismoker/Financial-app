@@ -267,8 +267,9 @@
               </label>
               <label>Category
                 <select id="txCategory">
-                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Investing</option><option>Crypto</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option>
+                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Investing</option><option>Crypto</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option><option value="__custom__">Custom / Type your own</option>
                 </select>
+                <input type="text" id="txCategoryCustom" class="custom-field" placeholder="Type category manually" />
               </label>
               <label>Amount<input type="number" id="txAmount" min="0" step="0.01" required /></label>
             </div>
@@ -289,8 +290,9 @@
             <div class="four-col">
               <label>Category
                 <select id="budgetCategory">
-                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option>
+                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option><option value="__custom__">Custom / Type your own</option>
                 </select>
+                <input type="text" id="budgetCategoryCustom" class="custom-field" placeholder="Type category manually" />
               </label>
               <label>Planned Amount<input type="number" id="budgetAmount" min="0" step="0.01" /></label>
               <label>&nbsp;<button type="submit">Save Category Plan</button></label>
@@ -298,10 +300,7 @@
             </div>
           </form>
           <div class="summary-list section-gap" id="budgetRollup"></div>
-          <table>
-            <thead><tr><th>Category</th><th>Planned</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead>
-            <tbody id="budgetPlanTable"></tbody>
-          </table>
+          <div class="budget-cards" id="budgetPlanCards"></div>
         </section>
 
         <section class="card span-12">
@@ -343,13 +342,15 @@
           <form id="holdingForm">
             <div class="five-col">
               <label>Account
-                <select id="holdingAccount"><option>Roth IRA</option><option>Brokerage</option><option>TSP</option></select>
+                <select id="holdingAccount"><option>Roth IRA</option><option>Brokerage</option><option>TSP</option><option value="__custom__">Custom / Type your own</option></select>
+                <input type="text" id="holdingAccountCustom" class="custom-field" placeholder="Type account manually" />
               </label>
               <label>Ticker<input type="text" id="holdingTicker" placeholder="VTI" required /></label>
               <label>Shares<input type="number" id="holdingShares" min="0" step="0.0001" required /></label>
               <label>Price<input type="number" id="holdingPrice" min="0" step="0.01" required /></label>
               <label>Type
-                <select id="holdingType"><option>ETF</option><option>Stock</option><option>Fund</option><option>Metal</option><option>Speculative</option></select>
+                <select id="holdingType"><option>ETF</option><option>Stock</option><option>Fund</option><option>Metal</option><option>Speculative</option><option value="__custom__">Custom / Type your own</option></select>
+                <input type="text" id="holdingTypeCustom" class="custom-field" placeholder="Type holding type manually" />
               </label>
             </div>
             <button type="submit">Add Holding</button>
@@ -417,7 +418,8 @@
             <div class="four-col">
               <label>Item name<input type="text" id="valuableName" placeholder="Living room TV" required /></label>
               <label>Category
-                <select id="valuableCategory"><option>Electronics</option><option>Firearm</option><option>Jewelry</option><option>Collectible</option><option>Tool</option><option>Other</option></select>
+                <select id="valuableCategory"><option>Electronics</option><option>Firearm</option><option>Jewelry</option><option>Collectible</option><option>Tool</option><option>Other</option><option value="__custom__">Custom / Type your own</option></select>
+                <input type="text" id="valuableCategoryCustom" class="custom-field" placeholder="Type category manually" />
               </label>
               <label>Estimated value<input type="number" id="valuableValue" min="0" step="0.01" required /></label>
               <label>Location<input type="text" id="valuableLocation" placeholder="Living room" /></label>
@@ -837,25 +839,51 @@
     }
 
     function renderBudgetPlan() {
-      const tbody = document.getElementById('budgetPlanTable');
+      const cards = document.getElementById('budgetPlanCards');
       const categories = Array.from(new Set([...Object.keys(state.budgets), ...state.transactions.filter(t=>t.type==='expense').map(t=>t.category)])).sort();
       const spentByCategory = {};
       state.transactions.filter(t=>t.type==='expense').forEach(t => spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Number(t.amount));
       const totalPlanned = Object.values(state.budgets).reduce((s,v)=>s + Number(v), 0);
       const totalSpent = Object.values(spentByCategory).reduce((s,v)=>s + Number(v), 0);
+      const totalRemaining = totalPlanned - totalSpent;
       document.getElementById('budgetRollup').innerHTML = `
         <div class="summary-item"><div class="recommend-line"><strong>Total Planned</strong><strong>${currency(totalPlanned)}</strong></div></div>
         <div class="summary-item"><div class="recommend-line"><strong>Total Spent</strong><strong>${currency(totalSpent)}</strong></div></div>
-        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalPlanned - totalSpent >= 0 ? 'good' : 'bad'}">${currency(totalPlanned - totalSpent)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalRemaining >= 0 ? 'good' : 'bad'}">${currency(totalRemaining)}</strong></div></div>
       `;
-      if (!categories.length) { tbody.innerHTML = `<tr><td colspan="5" class="muted">Add budget plans or expenses to see this section.</td></tr>`; return; }
-      tbody.innerHTML = categories.map(cat => {
+      if (!categories.length) {
+        cards.innerHTML = `<div class="allocation-item muted">Add budget plans or expenses to see this section.</div>`;
+        return;
+      }
+      cards.innerHTML = categories.map(cat => {
         const planned = Number(state.budgets[cat] || 0);
         const spent = Number(spentByCategory[cat] || 0);
         const remaining = planned - spent;
+        const percent = planned > 0 ? Math.min((spent / planned) * 100, 100) : 0;
         const status = planned === 0 ? 'No plan set' : remaining < 0 ? 'Over budget' : remaining < planned * 0.2 ? 'Near limit' : 'On track';
         const klass = status === 'Over budget' ? 'bad' : status === 'Near limit' ? 'warn' : 'good';
-        return `<tr><td>${cat}</td><td>${currency(planned)}</td><td>${currency(spent)}</td><td class="${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</td><td class="${klass}">${status}</td></tr>`;
+        return `
+          <div class="budget-category-card">
+            <div class="recommend-line">
+              <strong>${cat}</strong>
+              <strong class="${klass}">${status}</strong>
+            </div>
+            <div class="budget-metrics">
+              <div class="budget-metric">
+                <div class="label">Planned</div>
+                <div class="value">${currency(planned)}</div>
+              </div>
+              <div class="budget-metric">
+                <div class="label">Spent</div>
+                <div class="value">${currency(spent)}</div>
+              </div>
+              <div class="budget-metric">
+                <div class="label">Remaining</div>
+                <div class="value ${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</div>
+              </div>
+            </div>
+            <div class="budget-bar"><span style="width:${percent}%"></span></div>
+          </div>`;
       }).join('');
     }
 
@@ -1145,6 +1173,53 @@
       document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
     }));
 
+
+    function getSelectOrCustom(selectId, customId) {
+      const select = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!select) return '';
+      if (select.value === '__custom__') return (custom?.value || '').trim();
+      return select.value;
+    }
+
+    function addOptionIfMissing(selectId, value) {
+      if (!value) return;
+      const select = document.getElementById(selectId);
+      if (!select) return;
+      const existing = Array.from(select.options).find(opt => opt.value === value || opt.text === value);
+      if (!existing) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        const customOption = Array.from(select.options).find(opt => opt.value === '__custom__');
+        if (customOption) select.insertBefore(option, customOption);
+        else select.appendChild(option);
+      }
+      select.value = value;
+    }
+
+    function wireCustomSelect(selectId, customId) {
+      const select = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!select || !custom) return;
+      const sync = () => {
+        const isCustom = select.value === '__custom__';
+        custom.classList.toggle('show', isCustom);
+        custom.required = isCustom;
+        if (!isCustom) custom.value = '';
+      };
+      select.addEventListener('change', sync);
+      sync();
+    }
+
+    [
+      ['txCategory', 'txCategoryCustom'],
+      ['budgetCategory', 'budgetCategoryCustom'],
+      ['holdingAccount', 'holdingAccountCustom'],
+      ['holdingType', 'holdingTypeCustom'],
+      ['valuableCategory', 'valuableCategoryCustom']
+    ].forEach(([selectId, customId]) => wireCustomSelect(selectId, customId));
+
     document.getElementById('planForm').addEventListener('submit', e => {
       e.preventDefault();
       state.monthlyIncome = Number(document.getElementById('monthlyIncome').value || 0);
@@ -1171,22 +1246,31 @@
       state.transactions.push({
         id: crypto.randomUUID(),
         type: document.getElementById('txType').value,
-        category: document.getElementById('txCategory').value,
+        category: getSelectOrCustom('txCategory', 'txCategoryCustom') || 'Other',
         amount: Number(document.getElementById('txAmount').value || 0),
         description: document.getElementById('txDescription').value.trim(),
         date: document.getElementById('txDate').value
       });
       document.getElementById('txAmount').value = '';
       document.getElementById('txDescription').value = '';
+      addOptionIfMissing('txCategory', state.transactions[state.transactions.length - 1].category);
       document.getElementById('txType').value = 'expense';
+      document.getElementById('txCategory').value = 'Housing';
+      document.getElementById('txCategoryCustom').value = '';
       document.getElementById('txDate').value = new Date().toISOString().slice(0,10);
+      wireCustomSelect('txCategory', 'txCategoryCustom');
       renderAll();
     });
 
     document.getElementById('budgetPlanForm').addEventListener('submit', e => {
       e.preventDefault();
-      state.budgets[document.getElementById('budgetCategory').value] = Number(document.getElementById('budgetAmount').value || 0);
+      const budgetCategory = getSelectOrCustom('budgetCategory', 'budgetCategoryCustom') || 'Other';
+      state.budgets[budgetCategory] = Number(document.getElementById('budgetAmount').value || 0);
+      addOptionIfMissing('budgetCategory', budgetCategory);
       document.getElementById('budgetAmount').value = '';
+      document.getElementById('budgetCategory').value = 'Housing';
+      document.getElementById('budgetCategoryCustom').value = '';
+      wireCustomSelect('budgetCategory', 'budgetCategoryCustom');
       renderAll();
     });
 
@@ -1209,15 +1293,23 @@
       e.preventDefault();
       state.holdings.push({
         id: crypto.randomUUID(),
-        account: document.getElementById('holdingAccount').value,
+        account: getSelectOrCustom('holdingAccount', 'holdingAccountCustom') || 'Brokerage',
         ticker: document.getElementById('holdingTicker').value.trim().toUpperCase(),
         shares: Number(document.getElementById('holdingShares').value || 0),
         price: Number(document.getElementById('holdingPrice').value || 0),
-        type: document.getElementById('holdingType').value
+        type: getSelectOrCustom('holdingType', 'holdingTypeCustom') || 'ETF'
       });
+      addOptionIfMissing('holdingAccount', state.holdings[state.holdings.length - 1].account);
+      addOptionIfMissing('holdingType', state.holdings[state.holdings.length - 1].type);
       document.getElementById('holdingTicker').value = '';
       document.getElementById('holdingShares').value = '';
       document.getElementById('holdingPrice').value = '';
+      document.getElementById('holdingAccount').value = 'Roth IRA';
+      document.getElementById('holdingAccountCustom').value = '';
+      document.getElementById('holdingType').value = 'ETF';
+      document.getElementById('holdingTypeCustom').value = '';
+      wireCustomSelect('holdingAccount', 'holdingAccountCustom');
+      wireCustomSelect('holdingType', 'holdingTypeCustom');
       renderAll();
     });
 
@@ -1248,14 +1340,18 @@
       state.valuables.push({
         id: crypto.randomUUID(),
         name: document.getElementById('valuableName').value.trim(),
-        category: document.getElementById('valuableCategory').value,
+        category: getSelectOrCustom('valuableCategory', 'valuableCategoryCustom') || 'Other',
         value: Number(document.getElementById('valuableValue').value || 0),
         location: document.getElementById('valuableLocation').value.trim(),
         serial: document.getElementById('valuableSerial').value.trim(),
         notes: document.getElementById('valuableNotes').value.trim(),
         showSerial: false
       });
+      addOptionIfMissing('valuableCategory', state.valuables[state.valuables.length - 1].category);
       ['valuableName','valuableValue','valuableLocation','valuableSerial','valuableNotes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('valuableCategory').value = 'Electronics';
+      document.getElementById('valuableCategoryCustom').value = '';
+      wireCustomSelect('valuableCategory', 'valuableCategoryCustom');
       renderAll();
     });
 
