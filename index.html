@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Command Center</title>
+
+  <meta name="theme-color" content="#081120" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finance HQ" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
+  <style>
+    :root {
+      --bg: #081120;
+      --bg-2: #0f172a;
+      --panel: rgba(15, 23, 42, 0.88);
+      --panel-2: rgba(17, 24, 39, 0.92);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --good: #22c55e;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+      --accent: #38bdf8;
+      --purple: #a78bfa;
+      --border: rgba(148,163,184,.22);
+      --shadow: 0 18px 40px rgba(0,0,0,.28);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(56,189,248,.18), transparent 25%),
+        radial-gradient(circle at top left, rgba(34,197,94,.12), transparent 22%),
+        linear-gradient(160deg, #020617 0%, #0b1220 40%, #111827 100%);
+    }
+    .app { width: min(1360px, calc(100% - 24px)); margin: 18px auto 40px; }
+    .hero, .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .hero { padding: 24px; }
+    .hero-top, .section-head, .split, .recommend-line, .row-actions, .tabs { display:flex; gap:12px; flex-wrap:wrap; }
+    .hero-top, .section-head, .split, .recommend-line { justify-content: space-between; align-items: center; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(1.85rem, 3vw, 2.8rem); }
+    h2 { font-size: 1.08rem; }
+    h3 { font-size: 0.98rem; }
+    .muted { color: var(--muted); }
+    .small { font-size: .88rem; color: var(--muted); }
+    .pill {
+      display:inline-flex; align-items:center; gap:8px; padding:8px 12px;
+      border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.04); color: var(--muted); font-size:.92rem;
+    }
+    .stats {
+      display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:12px; margin-top:16px;
+    }
+    @media (max-width: 1180px) { .stats { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+    @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 460px) { .stats { grid-template-columns: 1fr; } }
+    .stat {
+      background: rgba(255,255,255,.035);
+      border:1px solid var(--border); border-radius:18px; padding:14px;
+    }
+    .stat .label { color:var(--muted); font-size:.85rem; }
+    .stat .value { font-size:1.4rem; font-weight:700; margin-top:6px; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:18px; margin-top:18px; }
+    .card { padding:18px; }
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-3 { grid-column: span 3; }
+    @media (max-width: 1040px) {
+      .span-8,.span-7,.span-6,.span-5,.span-4,.span-3 { grid-column: span 12; }
+    }
+    .tabs { margin-top:18px; }
+    .tab-btn {
+      border:1px solid var(--border); background: rgba(255,255,255,.04); color:var(--text);
+      padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:600;
+    }
+    .tab-btn.active { background: linear-gradient(135deg, rgba(56,189,248,.22), rgba(34,197,94,.18)); border-color: rgba(56,189,248,.45); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    form { display:grid; gap:12px; }
+    .two-col,.three-col,.four-col,.five-col { display:grid; gap:12px; }
+    .two-col { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .three-col { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .four-col { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .five-col { grid-template-columns: repeat(5, minmax(0,1fr)); }
+    @media (max-width: 860px) { .two-col,.three-col,.four-col,.five-col { grid-template-columns: 1fr; } }
+    label { display:grid; gap:6px; font-size:.92rem; color:var(--muted); }
+    input, select, button, textarea {
+      width:100%; border-radius:12px; border:1px solid var(--border);
+      background: rgba(15,23,42,.95); color:var(--text); padding:12px 14px; font: inherit;
+    }
+    textarea { min-height: 94px; resize: vertical; }
+    button {
+      cursor:pointer; border:none; color:white; font-weight:700;
+      background: linear-gradient(135deg, #0ea5e9, #22c55e);
+    }
+    button.secondary { background: rgba(255,255,255,.08); color:var(--text); border:1px solid var(--border); }
+    button.danger { background: rgba(127,29,29,.6); border:1px solid rgba(248,113,113,.28); }
+    .recommend-box {
+      margin-top:16px; background: linear-gradient(135deg, rgba(56,189,248,.14), rgba(167,139,250,.12));
+      border:1px solid rgba(56,189,248,.28); border-radius:18px; padding:16px;
+    }
+    .recommend-grid { display:grid; gap:10px; margin-top:12px; }
+    .recommend-item, .allocation-item, .summary-item {
+      background: rgba(255,255,255,.035); border:1px solid var(--border); border-radius:16px; padding:12px;
+    }
+    .allocation-list, .summary-list { display:grid; gap:10px; }
+    .budget-bar { margin-top:8px; height:12px; background: rgba(255,255,255,.08); border-radius:999px; overflow:hidden; }
+    .budget-bar > span { display:block; height:100%; background: linear-gradient(90deg, #38bdf8, #22c55e); width:0%; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; font-size:.95rem; }
+    th, td { text-align:left; padding:12px 8px; border-bottom:1px solid rgba(148,163,184,.16); vertical-align:top; }
+    th { color:var(--muted); font-weight:600; }
+    .delete-btn {
+      background: transparent; color:#fecaca; border:1px solid rgba(239,68,68,.35);
+      padding:8px 10px; border-radius:10px; width:auto;
+    }
+    .good { color:var(--good); }
+    .bad { color:var(--bad); }
+    .warn { color:var(--warn); }
+    .badge { display:inline-block; padding:4px 9px; border-radius:999px; font-size:.74rem; font-weight:700; }
+    .badge.good { background: rgba(34,197,94,.14); }
+    .badge.warn { background: rgba(245,158,11,.14); }
+    .badge.bad { background: rgba(239,68,68,.14); }
+    .pie-area { display:grid; grid-template-columns: minmax(220px, 280px) 1fr; gap:18px; align-items:center; }
+    @media (max-width: 760px) { .pie-area { grid-template-columns: 1fr; } }
+    canvas { width:100%; max-width:280px; aspect-ratio:1/1; display:block; margin:0 auto; }
+    .legend { display:grid; gap:10px; }
+    .legend-item { display:grid; grid-template-columns:14px 1fr auto; gap:10px; align-items:center; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+    .legend-swatch { width:14px; height:14px; border-radius:4px; border:1px solid rgba(255,255,255,.18); }
+    .sticky-note { padding:12px 14px; border-radius:16px; background: rgba(255,255,255,.04); border:1px dashed var(--border); }
+    .hideable { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .footer-note { margin-top:18px; font-size:.88rem; color:var(--muted); }
+    .section-gap { margin-top: 18px; }
+    .toast { position: fixed; right: 16px; bottom: 16px; background: rgba(15,23,42,.96); border:1px solid var(--border); border-radius:14px; padding:12px 14px; box-shadow: var(--shadow); z-index: 20; max-width: min(92vw, 360px); }
+    .toast.hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>Financial Command Center</h1>
+          <p class="muted">Budget, invest, track assets, and support veteran-specific planning with Roth-first guidance.</p>
+        </div>
+        <div class="pill">Auto-saves in your browser</div>
+      </div>
+
+      <div class="row-actions" style="margin-top:14px">
+        <button type="button" class="secondary" id="installAppBtn" style="display:none;width:auto">Install App</button>
+        <button type="button" class="secondary" id="exportBackupBtn" style="width:auto">Export Backup</button>
+        <button type="button" class="secondary" id="exportCsvBtn" style="width:auto">Export Inventory CSV</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:12px;cursor:pointer;width:auto">
+          Import Backup
+          <input type="file" id="importBackupInput" accept=".json,application/json" style="display:none" />
+        </label>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="label">Monthly Income</div><div class="value" id="incomeStat">$0</div></div>
+        <div class="stat"><div class="label">Monthly Spending</div><div class="value bad" id="spendingStat">$0</div></div>
+        <div class="stat"><div class="label">Remaining After Bills</div><div class="value good" id="leftStat">$0</div></div>
+        <div class="stat"><div class="label">Net Worth</div><div class="value" id="netWorthStat">$0</div></div>
+        <div class="stat"><div class="label">Investments</div><div class="value" id="investStat">$0</div></div>
+        <div class="stat"><div class="label">Roth Left to Max</div><div class="value" id="rothRemainingStat">$0</div></div>
+        <div class="stat"><div class="label">Stable Income Coverage</div><div class="value" id="coverageStat">0%</div></div>
+      </div>
+      <div class="recommend-box">
+        <div class="section-head">
+          <h2>Recommended Next Move</h2>
+          <span class="small">Built around your Roth IRA, low-rate mortgage, and veteran options</span>
+        </div>
+        <div id="recommendTop" class="sticky-note">Add your numbers to get guidance.</div>
+        <div class="recommend-grid" id="recommendList"></div>
+      </div>
+    </section>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="budget">Budget</button>
+      <button class="tab-btn" data-tab="invest">Invest</button>
+      <button class="tab-btn" data-tab="assets">Assets</button>
+      <button class="tab-btn" data-tab="goals">Goals</button>
+      <button class="tab-btn" data-tab="veteran">Veteran Mode</button>
+    </div>
+
+    <section class="tab-panel active" id="tab-dashboard">
+      <div class="grid">
+        <section class="card span-4">
+          <div class="section-head"><h2>Core Plan</h2><span class="small">Monthly cash flow and emergency setup</span></div>
+          <form id="planForm">
+            <label>Monthly take-home income<input type="number" id="monthlyIncome" min="0" step="0.01" placeholder="4500" /></label>
+            <label>Emergency fund goal<input type="number" id="emergencyGoal" min="0" step="0.01" placeholder="10000" /></label>
+            <label>Current emergency fund<input type="number" id="emergencyCurrent" min="0" step="0.01" placeholder="2500" /></label>
+            <label>Mortgage extra goal (optional)<input type="number" id="mortgageExtraGoal" min="0" step="0.01" placeholder="100" /></label>
+            <button type="submit">Save Core Plan</button>
+          </form>
+          <div class="section-gap">
+            <div class="small">Emergency fund progress</div>
+            <div class="budget-bar"><span id="emergencyBar"></span></div>
+            <div class="small" id="emergencyText" style="margin-top:8px">$0 of $0</div>
+          </div>
+          <div class="summary-list section-gap" id="targetGuide"></div>
+        </section>
+
+        <section class="card span-4">
+          <div class="section-head"><h2>Mortgage & House</h2><span class="small">Track equity and early payoff only if it makes sense</span></div>
+          <form id="homeForm">
+            <label>Estimated home value<input type="number" id="homeValue" min="0" step="0.01" placeholder="425000" /></label>
+            <label>Mortgage balance<input type="number" id="mortgageBalance" min="0" step="0.01" placeholder="123000" /></label>
+            <div class="two-col">
+              <label>Monthly mortgage payment<input type="number" id="mortgagePayment" min="0" step="0.01" placeholder="1418" /></label>
+              <label>Interest rate %<input type="number" id="mortgageRate" min="0" step="0.01" placeholder="2.25" /></label>
+            </div>
+            <label>Target payoff year<input type="number" id="mortgageTargetYears" min="1" step="1" placeholder="10" /></label>
+            <button type="submit">Save Home</button>
+          </form>
+          <div class="summary-list section-gap" id="mortgageSummary"></div>
+        </section>
+
+        <section class="card span-4">
+          <div class="section-head"><h2>Quick Snapshot</h2><span class="small">Where you stand today</span></div>
+          <div class="summary-list" id="snapshotSummary"></div>
+        </section>
+
+        <section class="card span-6">
+          <div class="section-head"><h2>Spending Breakdown</h2><span class="small">What percentage of money is going where</span></div>
+          <div class="pie-area">
+            <canvas id="spendingPieChart" width="280" height="280"></canvas>
+            <div class="legend" id="spendingLegend"></div>
+          </div>
+        </section>
+
+        <section class="card span-6">
+          <div class="section-head"><h2>Portfolio Breakdown</h2><span class="small">Cash, retirement, brokerage, crypto, and collectibles</span></div>
+          <div class="pie-area">
+            <canvas id="portfolioPieChart" width="280" height="280"></canvas>
+            <div class="legend" id="portfolioLegend"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-budget">
+      <div class="grid">
+        <section class="card span-5">
+          <div class="section-head"><h2>Add Transaction</h2><span class="small">Income, bills, food, hobby, investing, and more</span></div>
+          <form id="transactionForm">
+            <div class="three-col">
+              <label>Type
+                <select id="txType"><option value="expense">Expense</option><option value="income">Income</option></select>
+              </label>
+              <label>Category
+                <select id="txCategory">
+                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Investing</option><option>Crypto</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option>
+                </select>
+              </label>
+              <label>Amount<input type="number" id="txAmount" min="0" step="0.01" required /></label>
+            </div>
+            <div class="two-col">
+              <label>Description<input type="text" id="txDescription" placeholder="Groceries" /></label>
+              <label>Date<input type="date" id="txDate" required /></label>
+            </div>
+            <div class="row-actions">
+              <button type="submit">Add Transaction</button>
+              <button class="secondary" type="button" id="clearTransactions">Clear All Transactions</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card span-7">
+          <div class="section-head"><h2>Plan vs Spent vs Remaining</h2><span class="small">Track what you planned to spend and what is left</span></div>
+          <form id="budgetPlanForm">
+            <div class="four-col">
+              <label>Category
+                <select id="budgetCategory">
+                  <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option>
+                </select>
+              </label>
+              <label>Planned Amount<input type="number" id="budgetAmount" min="0" step="0.01" /></label>
+              <label>&nbsp;<button type="submit">Save Category Plan</button></label>
+              <label>&nbsp;<button type="button" class="secondary" id="clearBudgets">Clear Plans</button></label>
+            </div>
+          </form>
+          <div class="summary-list section-gap" id="budgetRollup"></div>
+          <table>
+            <thead><tr><th>Category</th><th>Planned</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead>
+            <tbody id="budgetPlanTable"></tbody>
+          </table>
+        </section>
+
+        <section class="card span-12">
+          <div class="section-head"><h2>Transactions</h2><span class="small">All saved cash flow activity</span></div>
+          <table>
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="transactionTable"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-invest">
+      <div class="grid">
+        <section class="card span-4">
+          <div class="section-head"><h2>Investment Strategy</h2><span class="small">Roth first, then brokerage</span></div>
+          <form id="investForm">
+            <div class="two-col">
+              <label>Monthly amount to invest<input type="number" id="monthlyInvest" min="0" step="0.01" placeholder="1140" /></label>
+              <label>Expected annual return %<input type="number" id="annualReturn" min="0" step="0.1" placeholder="8" /></label>
+            </div>
+            <div class="two-col">
+              <label>Annual Roth IRA limit<input type="number" id="rothLimit" min="0" step="1" placeholder="7000" /></label>
+              <label>Roth contributed this year<input type="number" id="rothContributed" min="0" step="0.01" placeholder="0" /></label>
+            </div>
+            <div class="four-col">
+              <label>Stocks %<input type="number" id="stocksPct" min="0" max="100" step="1" /></label>
+              <label>Bonds %<input type="number" id="bondsPct" min="0" max="100" step="1" /></label>
+              <label>Cash %<input type="number" id="cashPct" min="0" max="100" step="1" /></label>
+              <label>Crypto %<input type="number" id="planCryptoPct" min="0" max="100" step="1" /></label>
+            </div>
+            <button type="submit">Save Investing Plan</button>
+          </form>
+          <div class="allocation-list section-gap" id="allocationSummary"></div>
+        </section>
+
+        <section class="card span-8">
+          <div class="section-head"><h2>Investment Accounts</h2><span class="small">Keep Roth IRA and brokerage separate</span></div>
+          <form id="holdingForm">
+            <div class="five-col">
+              <label>Account
+                <select id="holdingAccount"><option>Roth IRA</option><option>Brokerage</option><option>TSP</option></select>
+              </label>
+              <label>Ticker<input type="text" id="holdingTicker" placeholder="VTI" required /></label>
+              <label>Shares<input type="number" id="holdingShares" min="0" step="0.0001" required /></label>
+              <label>Price<input type="number" id="holdingPrice" min="0" step="0.01" required /></label>
+              <label>Type
+                <select id="holdingType"><option>ETF</option><option>Stock</option><option>Fund</option><option>Metal</option><option>Speculative</option></select>
+              </label>
+            </div>
+            <button type="submit">Add Holding</button>
+          </form>
+          <div class="summary-list section-gap" id="buyPlanSummary"></div>
+          <table>
+            <thead><tr><th>Account</th><th>Ticker</th><th>Shares</th><th>Price</th><th>Value</th><th>Type</th><th></th></tr></thead>
+            <tbody id="holdingTable"></tbody>
+          </table>
+        </section>
+
+        <section class="card span-5">
+          <div class="section-head"><h2>Crypto Tracker</h2><span class="small">Manual prices for fast updates</span></div>
+          <form id="cryptoForm">
+            <div class="two-col">
+              <label>Coin name<input type="text" id="cryptoName" placeholder="Bitcoin" required /></label>
+              <label>Symbol<input type="text" id="cryptoSymbol" placeholder="BTC" maxlength="10" /></label>
+            </div>
+            <div class="three-col">
+              <label>Quantity<input type="number" id="cryptoQty" min="0" step="0.00000001" required /></label>
+              <label>Avg cost<input type="number" id="cryptoCost" min="0" step="0.01" required /></label>
+              <label>Current price<input type="number" id="cryptoPrice" min="0" step="0.01" required /></label>
+            </div>
+            <button type="submit">Add Crypto Holding</button>
+          </form>
+          <div class="allocation-list section-gap" id="cryptoSummary"></div>
+        </section>
+
+        <section class="card span-7">
+          <div class="section-head"><h2>Crypto Holdings</h2><span class="small">Basis, value, and gain/loss</span></div>
+          <table>
+            <thead><tr><th>Asset</th><th>Qty</th><th>Basis</th><th>Current Value</th><th>P/L</th><th></th></tr></thead>
+            <tbody id="cryptoTable"></tbody>
+          </table>
+        </section>
+
+        <section class="card span-12">
+          <div class="section-head"><h2>Projected Growth</h2><span class="small">Monthly contributions only</span></div>
+          <table>
+            <thead><tr><th>Years</th><th>Contributed</th><th>Estimated Value</th><th>Growth</th></tr></thead>
+            <tbody id="projectionTable"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-assets">
+      <div class="grid">
+        <section class="card span-4">
+          <div class="section-head"><h2>Cash & Collection Values</h2><span class="small">Accounts for liquid cash and sports cards</span></div>
+          <form id="assetSummaryForm">
+            <div class="two-col">
+              <label>Bank cash<input type="number" id="bankCash" min="0" step="0.01" /></label>
+              <label>Cash in safe<input type="number" id="safeCash" min="0" step="0.01" /></label>
+            </div>
+            <label>Sports card collection value<input type="number" id="cardValue" min="0" step="0.01" /></label>
+            <button type="submit">Save Asset Summary</button>
+          </form>
+          <div class="summary-list section-gap" id="assetSummaryCards"></div>
+        </section>
+
+        <section class="card span-8">
+          <div class="section-head"><h2>Valuables Inventory</h2><span class="small">Keep serials, values, and notes in one place</span></div>
+          <form id="valuableForm">
+            <div class="four-col">
+              <label>Item name<input type="text" id="valuableName" placeholder="Living room TV" required /></label>
+              <label>Category
+                <select id="valuableCategory"><option>Electronics</option><option>Firearm</option><option>Jewelry</option><option>Collectible</option><option>Tool</option><option>Other</option></select>
+              </label>
+              <label>Estimated value<input type="number" id="valuableValue" min="0" step="0.01" required /></label>
+              <label>Location<input type="text" id="valuableLocation" placeholder="Living room" /></label>
+            </div>
+            <div class="two-col">
+              <label>Serial number<input type="text" id="valuableSerial" placeholder="Optional" /></label>
+              <label>Notes<textarea id="valuableNotes" placeholder="Model, receipt info, accessories, condition"></textarea></label>
+            </div>
+            <button type="submit">Add Valuable</button>
+          </form>
+          <table>
+            <thead><tr><th>Item</th><th>Category</th><th>Value</th><th>Location</th><th>Serial</th><th></th></tr></thead>
+            <tbody id="valuableTable"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-goals">
+      <div class="grid">
+        <section class="card span-5">
+          <div class="section-head"><h2>Add Goal</h2><span class="small">Emergency fund, Roth, vacation, debt, or hobby cap</span></div>
+          <form id="goalForm">
+            <div class="three-col">
+              <label>Goal name<input type="text" id="goalName" placeholder="Roth IRA" required /></label>
+              <label>Target amount<input type="number" id="goalTarget" min="0" step="0.01" required /></label>
+              <label>Current amount<input type="number" id="goalCurrent" min="0" step="0.01" required /></label>
+            </div>
+            <button type="submit">Add Goal</button>
+          </form>
+          <div class="footer-note">Tip: add “Pay Off House” as a goal only if it helps motivation. With a 2.25% rate, the app will still favor retirement first.</div>
+        </section>
+        <section class="card span-7">
+          <div class="section-head"><h2>Goal Progress</h2><span class="small">Track progress visually</span></div>
+          <div class="summary-list" id="goalList"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-veteran">
+      <div class="grid">
+        <section class="card span-4">
+          <div class="section-head"><h2>Veteran Mode</h2><span class="small">Optional support for TSP and VA disability</span></div>
+          <form id="vetForm">
+            <div class="two-col">
+              <label>Enable TSP
+                <select id="enableTsp"><option value="false">No</option><option value="true">Yes</option></select>
+              </label>
+              <label>Enable VA disability income
+                <select id="enableVa"><option value="false">No</option><option value="true">Yes</option></select>
+              </label>
+            </div>
+            <label>VA disability monthly income<input type="number" id="vaIncome" min="0" step="0.01" placeholder="0" /></label>
+            <label>VA rating (optional)<input type="text" id="vaRating" placeholder="Optional" /></label>
+            <button type="submit">Save Veteran Settings</button>
+          </form>
+          <div class="summary-list section-gap" id="vetSummary"></div>
+        </section>
+
+        <section class="card span-8">
+          <div class="section-head"><h2>TSP Planner</h2><span class="small">Get the match first, then Roth IRA, then brokerage</span></div>
+          <form id="tspForm">
+            <div class="four-col">
+              <label>Current TSP balance<input type="number" id="tspBalance" min="0" step="0.01" /></label>
+              <label>Contribution %<input type="number" id="tspContributionPct" min="0" step="0.1" placeholder="5" /></label>
+              <label>Employer match %<input type="number" id="tspMatchPct" min="0" step="0.1" placeholder="5" /></label>
+              <label>Monthly base pay<input type="number" id="tspMonthlyPay" min="0" step="0.01" placeholder="0" /></label>
+            </div>
+            <div class="five-col">
+              <label>G %<input type="number" id="tspG" min="0" max="100" step="1" /></label>
+              <label>F %<input type="number" id="tspF" min="0" max="100" step="1" /></label>
+              <label>C %<input type="number" id="tspC" min="0" max="100" step="1" /></label>
+              <label>S %<input type="number" id="tspS" min="0" max="100" step="1" /></label>
+              <label>I %<input type="number" id="tspI" min="0" max="100" step="1" /></label>
+            </div>
+            <button type="submit">Save TSP</button>
+          </form>
+          <div class="summary-list section-gap" id="tspSummary"></div>
+        </section>
+      </div>
+    </section>
+
+    <div class="footer-note">Sensitive values and serial numbers are stored only in this browser. Keep a secure backup if you rely on this for insurance or records.</div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'financial-command-center-v4';
+    const PIE_COLORS = ['#38bdf8','#22c55e','#f59e0b','#a78bfa','#ef4444','#06b6d4','#84cc16','#f97316','#14b8a6','#eab308'];
+
+    const defaultState = {
+      monthlyIncome: 0,
+      emergencyGoal: 10000,
+      emergencyCurrent: 0,
+      monthlyInvest: 1140,
+      annualReturn: 8,
+      rothLimit: 7000,
+      rothContributed: 0,
+      mortgageExtraGoal: 0,
+      allocation: { stocks: 75, bonds: 5, cash: 10, crypto: 10 },
+      home: { value: 0, mortgageBalance: 123000, payment: 1418, rate: 2.25, targetYears: 10 },
+      cash: { bank: 0, safe: 0 },
+      cardValue: 0,
+      transactions: [],
+      budgets: {},
+      holdings: [],
+      cryptoHoldings: [],
+      valuables: [],
+      goals: [],
+      veteran: {
+        enableTsp: false,
+        enableVa: false,
+        vaIncome: 0,
+        vaRating: '',
+        tspBalance: 0,
+        tspContributionPct: 5,
+        tspMatchPct: 5,
+        tspMonthlyPay: 0,
+        tspFunds: { G: 0, F: 0, C: 80, S: 10, I: 10 }
+      }
+    };
+
+    let state = loadState();
+
+    let deferredInstallPrompt = null;
+
+    function showToast(message) {
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'toast hidden';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2800);
+    }
+
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function backupPayload() {
+      return {
+        app: 'Financial Command Center',
+        version: 5,
+        exportedAt: new Date().toISOString(),
+        state
+      };
+    }
+
+    function exportBackup() {
+      downloadFile(`financial-command-center-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(backupPayload(), null, 2), 'application/json');
+      showToast('Backup exported.');
+    }
+
+    function csvEscape(value) {
+      const stringValue = String(value ?? '');
+      return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+    }
+
+    function exportInventoryCsv() {
+      const rows = [
+        ['Section','Name','Category','Account','Ticker','Shares','Price','Value','Location','Serial','Notes']
+      ];
+      state.valuables.forEach(item => rows.push(['Valuable', item.name, item.category, '', '', '', '', item.value, item.location, item.serial, item.notes]));
+      state.holdings.forEach(item => rows.push(['Holding', item.ticker, item.type, item.account, item.ticker, item.shares, item.price, Number(item.shares) * Number(item.price), '', '', '']));
+      state.cryptoHoldings.forEach(item => rows.push(['Crypto', item.name, item.symbol, 'Crypto', item.symbol, item.quantity, item.currentPrice, Number(item.quantity) * Number(item.currentPrice), '', '', `Avg Cost: ${item.avgCost}`]));
+      const csv = rows.map(row => row.map(csvEscape).join(',')).join('\n');
+      downloadFile(`financial-command-center-inventory-${new Date().toISOString().slice(0,10)}.csv`, csv, 'text/csv;charset=utf-8');
+      showToast('Inventory CSV exported.');
+    }
+
+    async function importBackup(file) {
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const importedState = parsed.state || parsed;
+        if (!importedState || typeof importedState !== 'object') throw new Error('Invalid backup file.');
+        state = {
+          ...structuredClone(defaultState),
+          ...importedState,
+          allocation: { ...defaultState.allocation, ...(importedState.allocation || {}) },
+          home: { ...defaultState.home, ...(importedState.home || {}) },
+          cash: { ...defaultState.cash, ...(importedState.cash || {}) },
+          veteran: {
+            ...defaultState.veteran,
+            ...(importedState.veteran || {}),
+            tspFunds: { ...defaultState.veteran.tspFunds, ...((importedState.veteran || {}).tspFunds || {}) }
+          }
+        };
+        renderAll();
+        showToast('Backup imported.');
+      } catch (error) {
+        showToast('Backup import failed.');
+        console.error(error);
+      }
+    }
+
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed', err));
+        });
+      }
+    }
+
+    function setupInstallPrompt() {
+      const installBtn = document.getElementById('installAppBtn');
+      window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installBtn.style.display = 'inline-block';
+      });
+      installBtn.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) {
+          showToast('Use Share → Add to Home Screen on iPhone.');
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installBtn.style.display = 'none';
+      });
+      window.addEventListener('appinstalled', () => {
+        installBtn.style.display = 'none';
+        showToast('App installed.');
+      });
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!saved) return structuredClone(defaultState);
+        return {
+          ...structuredClone(defaultState),
+          ...saved,
+          allocation: { ...defaultState.allocation, ...(saved.allocation || {}) },
+          home: { ...defaultState.home, ...(saved.home || {}) },
+          cash: { ...defaultState.cash, ...(saved.cash || {}) },
+          veteran: {
+            ...defaultState.veteran,
+            ...(saved.veteran || {}),
+            tspFunds: { ...defaultState.veteran.tspFunds, ...((saved.veteran || {}).tspFunds || {}) }
+          }
+        };
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function currency(value) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(value||0)); }
+    function preciseCurrency(value) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Number(value||0)); }
+    function pct(value, digits=0) { return `${Number(value||0).toFixed(digits)}%`; }
+    function qty(value) { return Number(value || 0).toLocaleString('en-US',{maximumFractionDigits:8}); }
+
+    function monthlyTotals() {
+      const expenseTotal = state.transactions.filter(t => t.type === 'expense').reduce((s,t)=>s+Number(t.amount),0);
+      const extraIncome = state.transactions.filter(t => t.type === 'income').reduce((s,t)=>s+Number(t.amount),0);
+      const vaIncome = state.veteran.enableVa ? Number(state.veteran.vaIncome || 0) : 0;
+      const incomeTotal = Number(state.monthlyIncome || 0) + extraIncome + vaIncome;
+      return { incomeTotal, expenseTotal, leftToBudget: incomeTotal - expenseTotal };
+    }
+
+    function holdingsValue(account = null) {
+      return state.holdings.filter(h => !account || h.account === account).reduce((s,h)=>s + Number(h.shares) * Number(h.price),0);
+    }
+    function cryptoTotals() {
+      const totalBasis = state.cryptoHoldings.reduce((s,h)=>s + Number(h.quantity) * Number(h.avgCost),0);
+      const totalValue = state.cryptoHoldings.reduce((s,h)=>s + Number(h.quantity) * Number(h.currentPrice),0);
+      return { totalBasis, totalValue, totalGain: totalValue - totalBasis };
+    }
+    function valuablesTotal() { return state.valuables.reduce((s,v)=>s + Number(v.value), 0); }
+    function homeEquity() { return Math.max(Number(state.home.value || 0) - Number(state.home.mortgageBalance || 0), 0); }
+    function totalInvestments() {
+      return holdingsValue('Roth IRA') + holdingsValue('Brokerage') + holdingsValue('TSP') + cryptoTotals().totalValue;
+    }
+    function netWorth() {
+      return Number(state.cash.bank||0) + Number(state.cash.safe||0) + Number(state.cardValue||0) + valuablesTotal() + homeEquity() + totalInvestments();
+    }
+    function essentialExpenses() {
+      const categories = ['Housing','Utilities','Food','Transportation','Insurance','Health','Debt'];
+      return state.transactions.filter(t=>t.type==='expense' && categories.includes(t.category)).reduce((s,t)=>s+Number(t.amount),0);
+    }
+    function stableIncomeCoverage() {
+      const stable = state.veteran.enableVa ? Number(state.veteran.vaIncome || 0) : 0;
+      const essentials = essentialExpenses();
+      return essentials > 0 ? Math.min((stable / essentials) * 100, 999) : 0;
+    }
+    function rothRemaining() { return Math.max(Number(state.rothLimit||0) - Number(state.rothContributed||0), 0); }
+    function monthsLeftInYear() { return 12; }
+
+    function monthlyBuyPlan() {
+      const invest = Number(state.monthlyInvest || 0);
+      const rothNeedMonthly = rothRemaining() / monthsLeftInYear();
+      const tspNeededForMatch = state.veteran.enableTsp ? (Number(state.veteran.tspMonthlyPay||0) * (Number(state.veteran.tspContributionPct||0) < Number(state.veteran.tspMatchPct||0) ? (Number(state.veteran.tspMatchPct||0) - Number(state.veteran.tspContributionPct||0))/100 : 0)) : 0;
+      const rothSuggested = Math.min(invest, Math.ceil(Math.max(rothNeedMonthly, 0) / 10) * 10);
+      const brokerageSuggested = Math.max(invest - rothSuggested, 0);
+      return { rothSuggested, brokerageSuggested, tspNeededForMatch };
+    }
+
+    function mortgageInsights() {
+      const balance = Number(state.home.mortgageBalance || 0);
+      const payment = Number(state.home.payment || 0);
+      const rate = Number(state.home.rate || 0) / 100 / 12;
+      const years = Number(state.home.targetYears || 0);
+      let monthlyNeeded = 0;
+      if (balance > 0 && years > 0 && rate >= 0) {
+        const n = years * 12;
+        monthlyNeeded = rate === 0 ? balance / n : balance * rate / (1 - Math.pow(1 + rate, -n));
+      }
+      const extraNeeded = Math.max(monthlyNeeded - payment, 0);
+      return { monthlyNeeded, extraNeeded };
+    }
+
+    function futureValue(monthlyContribution, annualRate, years) {
+      const r = annualRate / 100 / 12;
+      const n = years * 12;
+      if (r === 0) return monthlyContribution * n;
+      return monthlyContribution * (((1 + r) ** n - 1) / r);
+    }
+
+    function fundOverlapWarnings() {
+      const tickers = state.holdings.map(h => h.ticker.toUpperCase());
+      const overlapSet = ['VTI','SWTSX','SWPPX','SPYM'];
+      const count = tickers.filter(t => overlapSet.includes(t)).length;
+      const warnings = [];
+      if (count >= 3) warnings.push('You have multiple overlapping broad-market funds. Simplifying to one core fund can make the portfolio cleaner.');
+      const cryptoValue = cryptoTotals().totalValue;
+      const investValue = totalInvestments();
+      if (investValue > 0 && (cryptoValue / investValue) * 100 > 10) warnings.push('Crypto is above a 10% target. Consider directing new money to core retirement holdings instead.');
+      return warnings;
+    }
+
+    function renderHeaderStats() {
+      const totals = monthlyTotals();
+      document.getElementById('incomeStat').textContent = currency(totals.incomeTotal);
+      document.getElementById('spendingStat').textContent = currency(totals.expenseTotal);
+      document.getElementById('leftStat').textContent = currency(totals.leftToBudget);
+      document.getElementById('leftStat').className = `value ${totals.leftToBudget >= 0 ? 'good' : 'bad'}`;
+      document.getElementById('netWorthStat').textContent = currency(netWorth());
+      document.getElementById('investStat').textContent = currency(totalInvestments());
+      document.getElementById('rothRemainingStat').textContent = currency(rothRemaining());
+      document.getElementById('coverageStat').textContent = pct(stableIncomeCoverage());
+    }
+
+    function renderEmergency() {
+      const goal = Number(state.emergencyGoal || 0);
+      const current = Number(state.emergencyCurrent || 0);
+      const progress = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+      document.getElementById('emergencyBar').style.width = `${progress}%`;
+      document.getElementById('emergencyText').textContent = `${currency(current)} of ${currency(goal)}`;
+    }
+
+    function renderTargets() {
+      const income = Number(state.monthlyIncome || 0) + (state.veteran.enableVa ? Number(state.veteran.vaIncome || 0) : 0);
+      const guide = [
+        ['Needs Target', income * 0.5, 'Bills, groceries, gas, insurance'],
+        ['Wants Target', income * 0.3, 'Restaurants, hobby, entertainment'],
+        ['Savings & Investing', income * 0.2, 'Emergency fund, Roth IRA, brokerage'],
+        ['Roth Needed Monthly', rothRemaining() / monthsLeftInYear(), 'Amount needed to stay on pace to max the Roth']
+      ];
+      document.getElementById('targetGuide').innerHTML = guide.map(([label, value, note]) => `
+        <div class="summary-item">
+          <div class="recommend-line"><strong>${label}</strong><strong>${currency(value)}</strong></div>
+          <div class="small">${note}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderMortgageSummary() {
+      const eq = homeEquity();
+      const mi = mortgageInsights();
+      const lowRate = Number(state.home.rate || 0) <= 3;
+      document.getElementById('mortgageSummary').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>Home Equity</strong><strong>${currency(eq)}</strong></div><div class="small">Home value minus mortgage balance</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Current Mortgage Payment</strong><strong>${currency(state.home.payment)}</strong></div><div class="small">Interest rate ${pct(state.home.rate,2)}</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>10-Year Goal Extra Needed</strong><strong>${currency(mi.extraNeeded)}</strong></div><div class="small">${lowRate ? 'Because your rate is low, the app still favors retirement first.' : 'Higher rates can justify more aggressive payoff.'}</div></div>
+      `;
+    }
+
+    function renderSnapshot() {
+      const totals = monthlyTotals();
+      const crypto = cryptoTotals();
+      const coverage = stableIncomeCoverage();
+      document.getElementById('snapshotSummary').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>Bank + Safe Cash</strong><strong>${currency(Number(state.cash.bank||0) + Number(state.cash.safe||0))}</strong></div><div class="small">Liquid money you can access quickly</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Card Collection</strong><strong>${currency(state.cardValue)}</strong></div><div class="small">Use conservative comp values</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Crypto Value</strong><strong>${currency(crypto.totalValue)}</strong></div><div class="small">Manual pricing input</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Stable Income Coverage</strong><strong>${pct(coverage)}</strong></div><div class="small">Percent of essential expenses covered by VA income</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Left After Bills</strong><strong class="${totals.leftToBudget >= 0 ? 'good' : 'bad'}">${currency(totals.leftToBudget)}</strong></div><div class="small">Based on all saved income and expenses</div></div>
+      `;
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('transactionTable');
+      const rows = [...state.transactions].sort((a,b)=>b.date.localeCompare(a.date));
+      if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6" class="muted">No transactions yet.</td></tr>`; return; }
+      tbody.innerHTML = rows.map(t => `
+        <tr>
+          <td>${t.date}</td>
+          <td>${t.description || '—'}</td>
+          <td>${t.category}</td>
+          <td>${t.type}</td>
+          <td class="${t.type === 'expense' ? 'bad' : 'good'}">${t.type === 'expense' ? '-' : '+'}${preciseCurrency(t.amount)}</td>
+          <td><button class="delete-btn" onclick="removeTransaction('${t.id}')">Delete</button></td>
+        </tr>`).join('');
+    }
+
+    function renderBudgetPlan() {
+      const tbody = document.getElementById('budgetPlanTable');
+      const categories = Array.from(new Set([...Object.keys(state.budgets), ...state.transactions.filter(t=>t.type==='expense').map(t=>t.category)])).sort();
+      const spentByCategory = {};
+      state.transactions.filter(t=>t.type==='expense').forEach(t => spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Number(t.amount));
+      const totalPlanned = Object.values(state.budgets).reduce((s,v)=>s + Number(v), 0);
+      const totalSpent = Object.values(spentByCategory).reduce((s,v)=>s + Number(v), 0);
+      document.getElementById('budgetRollup').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>Total Planned</strong><strong>${currency(totalPlanned)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Total Spent</strong><strong>${currency(totalSpent)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalPlanned - totalSpent >= 0 ? 'good' : 'bad'}">${currency(totalPlanned - totalSpent)}</strong></div></div>
+      `;
+      if (!categories.length) { tbody.innerHTML = `<tr><td colspan="5" class="muted">Add budget plans or expenses to see this section.</td></tr>`; return; }
+      tbody.innerHTML = categories.map(cat => {
+        const planned = Number(state.budgets[cat] || 0);
+        const spent = Number(spentByCategory[cat] || 0);
+        const remaining = planned - spent;
+        const status = planned === 0 ? 'No plan set' : remaining < 0 ? 'Over budget' : remaining < planned * 0.2 ? 'Near limit' : 'On track';
+        const klass = status === 'Over budget' ? 'bad' : status === 'Near limit' ? 'warn' : 'good';
+        return `<tr><td>${cat}</td><td>${currency(planned)}</td><td>${currency(spent)}</td><td class="${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</td><td class="${klass}">${status}</td></tr>`;
+      }).join('');
+    }
+
+    function renderInvestments() {
+      const summary = document.getElementById('allocationSummary');
+      const items = [['Stocks', state.allocation.stocks],['Bonds', state.allocation.bonds],['Cash', state.allocation.cash],['Crypto', state.allocation.crypto]];
+      const totalPct = items.reduce((s, [,v])=>s+Number(v),0);
+      summary.innerHTML = items.map(([label, pctValue]) => `
+        <div class="allocation-item"><div class="recommend-line"><strong>${label}</strong><strong>${pct(pctValue)}</strong></div><div class="small">${currency(Number(state.monthlyInvest||0) * (Number(pctValue)/100))} per month</div><div class="budget-bar"><span style="width:${pctValue}%"></span></div></div>
+      `).join('') + `<div class="allocation-item"><div class="recommend-line"><strong>Total Allocation</strong><strong class="${totalPct === 100 ? 'good' : 'warn'}">${pct(totalPct)}</strong></div><div class="small">Keep this at 100%.</div></div>`;
+
+      const buy = monthlyBuyPlan();
+      const warnings = fundOverlapWarnings();
+      document.getElementById('buyPlanSummary').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>Monthly Roth Buy</strong><strong>${currency(buy.rothSuggested)}</strong></div><div class="small">Use VTI or one core total-market fund in Roth IRA first.</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Monthly Brokerage Buy</strong><strong>${currency(buy.brokerageSuggested)}</strong></div><div class="small">Only after Roth is on pace to max.</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Roth Remaining This Year</strong><strong>${currency(rothRemaining())}</strong></div><div class="small">Max the Roth before adding much to brokerage.</div></div>
+        ${warnings.map(w=>`<div class="summary-item"><div class="small warn">⚠️ ${w}</div></div>`).join('')}
+      `;
+    }
+
+    function renderHoldings() {
+      const tbody = document.getElementById('holdingTable');
+      if (!state.holdings.length) { tbody.innerHTML = `<tr><td colspan="7" class="muted">No holdings yet.</td></tr>`; return; }
+      tbody.innerHTML = state.holdings.map(h => `
+        <tr>
+          <td>${h.account}</td><td><strong>${h.ticker}</strong></td><td>${qty(h.shares)}</td><td>${preciseCurrency(h.price)}</td><td>${preciseCurrency(Number(h.shares) * Number(h.price))}</td><td>${h.type}</td>
+          <td><button class="delete-btn" onclick="removeHolding('${h.id}')">Delete</button></td>
+        </tr>`).join('');
+    }
+
+    function renderCrypto() {
+      const tbody = document.getElementById('cryptoTable');
+      const summary = document.getElementById('cryptoSummary');
+      const totals = cryptoTotals();
+      if (!state.cryptoHoldings.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">No crypto holdings yet.</td></tr>`;
+      } else {
+        tbody.innerHTML = state.cryptoHoldings.map(h => {
+          const basis = Number(h.quantity) * Number(h.avgCost);
+          const value = Number(h.quantity) * Number(h.currentPrice);
+          const gain = value - basis;
+          return `<tr><td><strong>${h.name}</strong><div class="small">${h.symbol || ''}</div></td><td>${qty(h.quantity)}</td><td>${preciseCurrency(basis)}</td><td>${preciseCurrency(value)}</td><td class="${gain >= 0 ? 'good' : 'bad'}">${preciseCurrency(gain)}</td><td><button class="delete-btn" onclick="removeCrypto('${h.id}')">Delete</button></td></tr>`;
+        }).join('');
+      }
+      const gainPct = totals.totalBasis > 0 ? (totals.totalGain / totals.totalBasis) * 100 : 0;
+      summary.innerHTML = `
+        <div class="allocation-item"><div class="recommend-line"><strong>Total Basis</strong><strong>${currency(totals.totalBasis)}</strong></div><div class="small">What you paid</div></div>
+        <div class="allocation-item"><div class="recommend-line"><strong>Current Value</strong><strong>${currency(totals.totalValue)}</strong></div><div class="small">Based on manual prices</div></div>
+        <div class="allocation-item"><div class="recommend-line"><strong>Gain / Loss</strong><strong class="${totals.totalGain >= 0 ? 'good' : 'bad'}">${currency(totals.totalGain)}</strong></div><div class="small">${totals.totalBasis > 0 ? `${gainPct.toFixed(1)}% overall` : 'Add holdings to calculate performance'}</div></div>`;
+    }
+
+    function renderProjection() {
+      const tbody = document.getElementById('projectionTable');
+      const monthly = Number(state.monthlyInvest || 0);
+      const rate = Number(state.annualReturn || 0);
+      tbody.innerHTML = [1,3,5,10,20,30].map(years => {
+        const contributed = monthly * 12 * years;
+        const estimated = futureValue(monthly, rate, years);
+        const growth = estimated - contributed;
+        return `<tr><td>${years}</td><td>${currency(contributed)}</td><td>${currency(estimated)}</td><td class="good">${currency(growth)}</td></tr>`;
+      }).join('');
+    }
+
+    function renderAssetSummary() {
+      document.getElementById('assetSummaryCards').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>Bank Cash</strong><strong>${currency(state.cash.bank)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Cash in Safe</strong><strong>${currency(state.cash.safe)}</strong></div><div class="small">Treat this like another cash account</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Sports Cards</strong><strong>${currency(state.cardValue)}</strong></div><div class="small">Use your spreadsheet for individual comps, app for total value</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Other Valuables</strong><strong>${currency(valuablesTotal())}</strong></div></div>
+      `;
+    }
+
+    function renderValuables() {
+      const tbody = document.getElementById('valuableTable');
+      if (!state.valuables.length) { tbody.innerHTML = `<tr><td colspan="6" class="muted">No valuables added yet.</td></tr>`; return; }
+      tbody.innerHTML = state.valuables.map(v => {
+        const serial = v.showSerial ? v.serial || '—' : ((v.serial && v.serial.length) ? '•••••• hidden' : '—');
+        return `<tr><td><strong>${v.name}</strong><div class="small">${v.notes || ''}</div></td><td>${v.category}</td><td>${currency(v.value)}</td><td>${v.location || '—'}</td><td class="hideable">${serial}<div class="small"><button class="secondary" style="width:auto;padding:6px 10px;margin-top:6px" onclick="toggleSerial('${v.id}')">${v.showSerial ? 'Hide' : 'Show'}</button></div></td><td><button class="delete-btn" onclick="removeValuable('${v.id}')">Delete</button></td></tr>`;
+      }).join('');
+    }
+
+    function renderGoals() {
+      const list = document.getElementById('goalList');
+      const autoGoals = [
+        { name: 'Emergency Fund', target: Number(state.emergencyGoal||0), current: Number(state.emergencyCurrent||0) },
+        { name: 'Roth IRA', target: Number(state.rothLimit||0), current: Number(state.rothContributed||0) }
+      ];
+      const goals = [...autoGoals, ...state.goals];
+      if (!goals.length) { list.innerHTML = `<p class="muted">No goals yet.</p>`; return; }
+      list.innerHTML = goals.map((g, index) => {
+        const progress = g.target > 0 ? Math.min((Number(g.current||0) / Number(g.target||0)) * 100, 100) : 0;
+        const customDelete = index >= autoGoals.length ? `<button class="delete-btn" onclick="removeGoal('${g.id}')">Delete</button>` : '';
+        return `<div class="allocation-item"><div class="recommend-line"><strong>${g.name}</strong><strong>${currency(g.current)} / ${currency(g.target)}</strong></div><div class="budget-bar"><span style="width:${progress}%"></span></div><div class="recommend-line" style="margin-top:8px"><span class="small">${pct(progress)} complete</span>${customDelete}</div></div>`;
+      }).join('');
+    }
+
+    function renderVeteran() {
+      const stableCoverage = stableIncomeCoverage();
+      document.getElementById('vetSummary').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>VA Income</strong><strong>${currency(state.veteran.enableVa ? state.veteran.vaIncome : 0)}</strong></div><div class="small">Tax-free stable income can make investing easier.</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Stable Income Coverage</strong><strong>${pct(stableCoverage)}</strong></div><div class="small">Percent of essential expenses covered by VA compensation.</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>TSP Enabled</strong><strong>${state.veteran.enableTsp ? 'Yes' : 'No'}</strong></div><div class="small">When enabled, recommendations check the TSP match first.</div></div>
+      `;
+      const funds = state.veteran.tspFunds;
+      const total = Number(funds.G)+Number(funds.F)+Number(funds.C)+Number(funds.S)+Number(funds.I);
+      const contributionAmount = Number(state.veteran.tspMonthlyPay||0) * (Number(state.veteran.tspContributionPct||0)/100);
+      const matchGap = Math.max(Number(state.veteran.tspMatchPct||0) - Number(state.veteran.tspContributionPct||0), 0);
+      const notes = [];
+      if (state.veteran.enableTsp && Number(state.veteran.tspContributionPct||0) < Number(state.veteran.tspMatchPct||0)) notes.push(`Increase TSP contribution by ${matchGap.toFixed(1)}% to capture the full match.`);
+      if (state.veteran.enableTsp && Number(funds.G||0) > 40) notes.push('A high G Fund allocation may be too conservative for long-term growth.');
+      if (state.veteran.enableTsp && Number(funds.C||0) + Number(funds.S||0) < 50) notes.push('Your TSP may be light on stock exposure for growth.');
+      document.getElementById('tspSummary').innerHTML = `
+        <div class="summary-item"><div class="recommend-line"><strong>TSP Balance</strong><strong>${currency(state.veteran.tspBalance)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Monthly TSP Contribution</strong><strong>${currency(contributionAmount)}</strong></div><div class="small">Based on your pay and contribution percent</div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>TSP Allocation Total</strong><strong class="${total === 100 ? 'good' : 'warn'}">${pct(total)}</strong></div><div class="small">Keep total TSP fund allocation at 100%</div></div>
+        ${notes.map(n => `<div class="summary-item"><div class="small warn">⚠️ ${n}</div></div>`).join('')}
+      `;
+    }
+
+    function renderRecommendations() {
+      const list = [];
+      const totals = monthlyTotals();
+      const buy = monthlyBuyPlan();
+      const coverage = stableIncomeCoverage();
+      const mortgage = mortgageInsights();
+      const lowRate = Number(state.home.rate||0) <= 3;
+
+      let top = 'Keep funding retirement first, then use extra cash for brokerage or optional mortgage principal.';
+
+      if (Number(state.emergencyCurrent||0) < Number(state.emergencyGoal||0) * 0.25) {
+        top = 'Emergency fund is still light. Build cash reserves while continuing at least some Roth contributions.';
+        list.push(['Build emergency fund', `Add ${currency(Math.max(100, Math.min(totals.leftToBudget, 300)))} to cash reserves this month if possible.`, 'warn']);
+      }
+
+      if (state.veteran.enableTsp && Number(state.veteran.tspContributionPct||0) < Number(state.veteran.tspMatchPct||0)) {
+        top = 'Get the full TSP match first, then max Roth IRA, then add to brokerage.';
+        list.push(['Increase TSP match', `Raise TSP contribution to at least ${pct(state.veteran.tspMatchPct,1)}.`, 'warn']);
+      }
+
+      if (rothRemaining() > 0) {
+        list.push(['Max Roth IRA first', `Put about ${currency(buy.rothSuggested)} this month into your Roth IRA before brokerage.`, 'good']);
+      } else {
+        list.push(['Roth is maxed', 'New money can go to brokerage or other long-term goals.', 'good']);
+      }
+
+      list.push(['What to buy next', buy.rothSuggested > 0 ? 'Buy one core total-market fund like VTI in the Roth. Avoid stacking several overlapping broad-market funds.' : 'Use brokerage for core ETF contributions now that Roth is on track.', 'good']);
+
+      if (buy.brokerageSuggested > 0) {
+        list.push(['Brokerage after Roth', `After Roth, direct about ${currency(buy.brokerageSuggested)} to brokerage.`, 'good']);
+      }
+
+      if (lowRate) {
+        list.push(['Low-rate mortgage', `At ${pct(state.home.rate,2)}, the house is very cheap debt. Retirement investing should stay ahead of aggressive payoff.`, 'good']);
+      } else if (mortgage.extraNeeded > 0) {
+        list.push(['Mortgage payoff goal', `To hit a ${state.home.targetYears}-year payoff, you need about ${currency(mortgage.extraNeeded)} extra each month.`, 'warn']);
+      }
+
+      if (coverage > 0) {
+        list.push(['VA income effect', `Stable VA income covers about ${pct(coverage)} of essential expenses, which can support a more confident investing plan.`, 'good']);
+      }
+
+      fundOverlapWarnings().forEach(msg => list.push(['Portfolio cleanup', msg, 'warn']));
+
+      const restaurantSpent = state.transactions.filter(t => t.type==='expense' && t.category==='Restaurants').reduce((s,t)=>s+Number(t.amount),0);
+      const restaurantPlan = Number(state.budgets['Restaurants'] || 0);
+      if (restaurantPlan > 0 && restaurantSpent > restaurantPlan * 0.8) list.push(['Restaurant alert', `You have used ${pct((restaurantSpent/restaurantPlan)*100)} of the restaurant budget.`, restaurantSpent > restaurantPlan ? 'bad' : 'warn']);
+      const hobbySpent = state.transactions.filter(t => t.type==='expense' && t.category==='Cards/Hobby').reduce((s,t)=>s+Number(t.amount),0);
+      const hobbyPlan = Number(state.budgets['Cards/Hobby'] || 0);
+      if (hobbyPlan > 0 && hobbySpent > hobbyPlan * 0.8) list.push(['Hobby alert', `Cards/Hobby spending is at ${pct((hobbySpent/hobbyPlan)*100)} of plan.`, hobbySpent > hobbyPlan ? 'bad' : 'warn']);
+
+      document.getElementById('recommendTop').textContent = top;
+      document.getElementById('recommendList').innerHTML = list.map(([title, text, tone]) => `
+        <div class="recommend-item"><div class="recommend-line"><strong>${title}</strong><span class="badge ${tone}">${tone === 'good' ? 'Focus' : tone === 'bad' ? 'Action' : 'Watch'}</span></div><div class="small" style="margin-top:8px">${text}</div></div>
+      `).join('');
+    }
+
+    function drawPie(canvasId, legendId, items) {
+      const canvas = document.getElementById(canvasId);
+      const legend = document.getElementById(legendId);
+      const ctx = canvas.getContext('2d');
+      const total = items.reduce((s, i) => s + i.value, 0);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      if (!items.length || total <= 0) {
+        legend.innerHTML = `<div class="small">Add data to see this chart.</div>`;
+        ctx.fillStyle = 'rgba(148,163,184,.18)';
+        ctx.beginPath(); ctx.arc(140,140,105,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(140,140,55,0,Math.PI*2); ctx.fill();
+        return;
+      }
+      let start = -Math.PI / 2;
+      items.forEach((item, idx) => {
+        const slice = (item.value / total) * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(140,140); ctx.arc(140,140,105,start,start + slice); ctx.closePath();
+        ctx.fillStyle = PIE_COLORS[idx % PIE_COLORS.length]; ctx.fill();
+        start += slice;
+      });
+      ctx.fillStyle = '#081120'; ctx.beginPath(); ctx.arc(140,140,58,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 20px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(currency(total), 140, 136);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '12px Inter, sans-serif'; ctx.fillText('Total', 140, 156);
+      legend.innerHTML = items.map((item, idx) => `
+        <div class="legend-item"><span class="legend-swatch" style="background:${PIE_COLORS[idx % PIE_COLORS.length]}"></span><span>${item.label}</span><strong>${((item.value / total) * 100).toFixed(0)}% · ${currency(item.value)}</strong></div>`).join('');
+    }
+
+    function renderCharts() {
+      const spendingTotals = {};
+      state.transactions.filter(t => t.type === 'expense').forEach(t => spendingTotals[t.category] = (spendingTotals[t.category] || 0) + Number(t.amount));
+      drawPie('spendingPieChart', 'spendingLegend', Object.entries(spendingTotals).sort((a,b)=>b[1]-a[1]).map(([label,value]) => ({label,value})));
+
+      const portfolioItems = [
+        { label: 'Bank Cash', value: Number(state.cash.bank||0) },
+        { label: 'Safe Cash', value: Number(state.cash.safe||0) },
+        { label: 'Roth IRA', value: holdingsValue('Roth IRA') },
+        { label: 'Brokerage', value: holdingsValue('Brokerage') },
+        { label: 'TSP', value: holdingsValue('TSP') + Number(state.veteran.tspBalance||0) },
+        { label: 'Crypto', value: cryptoTotals().totalValue },
+        { label: 'Cards', value: Number(state.cardValue||0) },
+        { label: 'Valuables', value: valuablesTotal() },
+        { label: 'Home Equity', value: homeEquity() }
+      ].filter(i => i.value > 0);
+      drawPie('portfolioPieChart', 'portfolioLegend', portfolioItems);
+    }
+
+    function syncFormValues() {
+      document.getElementById('monthlyIncome').value = state.monthlyIncome || '';
+      document.getElementById('emergencyGoal').value = state.emergencyGoal || '';
+      document.getElementById('emergencyCurrent').value = state.emergencyCurrent || '';
+      document.getElementById('mortgageExtraGoal').value = state.mortgageExtraGoal || '';
+      document.getElementById('homeValue').value = state.home.value || '';
+      document.getElementById('mortgageBalance').value = state.home.mortgageBalance || '';
+      document.getElementById('mortgagePayment').value = state.home.payment || '';
+      document.getElementById('mortgageRate').value = state.home.rate || '';
+      document.getElementById('mortgageTargetYears').value = state.home.targetYears || '';
+      document.getElementById('monthlyInvest').value = state.monthlyInvest || '';
+      document.getElementById('annualReturn').value = state.annualReturn || '';
+      document.getElementById('rothLimit').value = state.rothLimit || '';
+      document.getElementById('rothContributed').value = state.rothContributed || '';
+      document.getElementById('stocksPct').value = state.allocation.stocks;
+      document.getElementById('bondsPct').value = state.allocation.bonds;
+      document.getElementById('cashPct').value = state.allocation.cash;
+      document.getElementById('planCryptoPct').value = state.allocation.crypto;
+      document.getElementById('bankCash').value = state.cash.bank || '';
+      document.getElementById('safeCash').value = state.cash.safe || '';
+      document.getElementById('cardValue').value = state.cardValue || '';
+      document.getElementById('enableTsp').value = String(state.veteran.enableTsp);
+      document.getElementById('enableVa').value = String(state.veteran.enableVa);
+      document.getElementById('vaIncome').value = state.veteran.vaIncome || '';
+      document.getElementById('vaRating').value = state.veteran.vaRating || '';
+      document.getElementById('tspBalance').value = state.veteran.tspBalance || '';
+      document.getElementById('tspContributionPct').value = state.veteran.tspContributionPct || '';
+      document.getElementById('tspMatchPct').value = state.veteran.tspMatchPct || '';
+      document.getElementById('tspMonthlyPay').value = state.veteran.tspMonthlyPay || '';
+      document.getElementById('tspG').value = state.veteran.tspFunds.G;
+      document.getElementById('tspF').value = state.veteran.tspFunds.F;
+      document.getElementById('tspC').value = state.veteran.tspFunds.C;
+      document.getElementById('tspS').value = state.veteran.tspFunds.S;
+      document.getElementById('tspI').value = state.veteran.tspFunds.I;
+      if (!document.getElementById('txDate').value) document.getElementById('txDate').value = new Date().toISOString().slice(0, 10);
+    }
+
+    function renderAll() {
+      syncFormValues();
+      renderHeaderStats();
+      renderEmergency();
+      renderTargets();
+      renderMortgageSummary();
+      renderSnapshot();
+      renderTransactions();
+      renderBudgetPlan();
+      renderInvestments();
+      renderHoldings();
+      renderCrypto();
+      renderProjection();
+      renderAssetSummary();
+      renderValuables();
+      renderGoals();
+      renderVeteran();
+      renderRecommendations();
+      renderCharts();
+      saveState();
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    }));
+
+    document.getElementById('planForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.monthlyIncome = Number(document.getElementById('monthlyIncome').value || 0);
+      state.emergencyGoal = Number(document.getElementById('emergencyGoal').value || 0);
+      state.emergencyCurrent = Number(document.getElementById('emergencyCurrent').value || 0);
+      state.mortgageExtraGoal = Number(document.getElementById('mortgageExtraGoal').value || 0);
+      renderAll();
+    });
+
+    document.getElementById('homeForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.home = {
+        value: Number(document.getElementById('homeValue').value || 0),
+        mortgageBalance: Number(document.getElementById('mortgageBalance').value || 0),
+        payment: Number(document.getElementById('mortgagePayment').value || 0),
+        rate: Number(document.getElementById('mortgageRate').value || 0),
+        targetYears: Number(document.getElementById('mortgageTargetYears').value || 0)
+      };
+      renderAll();
+    });
+
+    document.getElementById('transactionForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.transactions.push({
+        id: crypto.randomUUID(),
+        type: document.getElementById('txType').value,
+        category: document.getElementById('txCategory').value,
+        amount: Number(document.getElementById('txAmount').value || 0),
+        description: document.getElementById('txDescription').value.trim(),
+        date: document.getElementById('txDate').value
+      });
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txDescription').value = '';
+      document.getElementById('txType').value = 'expense';
+      document.getElementById('txDate').value = new Date().toISOString().slice(0,10);
+      renderAll();
+    });
+
+    document.getElementById('budgetPlanForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.budgets[document.getElementById('budgetCategory').value] = Number(document.getElementById('budgetAmount').value || 0);
+      document.getElementById('budgetAmount').value = '';
+      renderAll();
+    });
+
+    document.getElementById('investForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.monthlyInvest = Number(document.getElementById('monthlyInvest').value || 0);
+      state.annualReturn = Number(document.getElementById('annualReturn').value || 0);
+      state.rothLimit = Number(document.getElementById('rothLimit').value || 0);
+      state.rothContributed = Number(document.getElementById('rothContributed').value || 0);
+      state.allocation = {
+        stocks: Number(document.getElementById('stocksPct').value || 0),
+        bonds: Number(document.getElementById('bondsPct').value || 0),
+        cash: Number(document.getElementById('cashPct').value || 0),
+        crypto: Number(document.getElementById('planCryptoPct').value || 0)
+      };
+      renderAll();
+    });
+
+    document.getElementById('holdingForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.holdings.push({
+        id: crypto.randomUUID(),
+        account: document.getElementById('holdingAccount').value,
+        ticker: document.getElementById('holdingTicker').value.trim().toUpperCase(),
+        shares: Number(document.getElementById('holdingShares').value || 0),
+        price: Number(document.getElementById('holdingPrice').value || 0),
+        type: document.getElementById('holdingType').value
+      });
+      document.getElementById('holdingTicker').value = '';
+      document.getElementById('holdingShares').value = '';
+      document.getElementById('holdingPrice').value = '';
+      renderAll();
+    });
+
+    document.getElementById('cryptoForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.cryptoHoldings.push({
+        id: crypto.randomUUID(),
+        name: document.getElementById('cryptoName').value.trim(),
+        symbol: document.getElementById('cryptoSymbol').value.trim().toUpperCase(),
+        quantity: Number(document.getElementById('cryptoQty').value || 0),
+        avgCost: Number(document.getElementById('cryptoCost').value || 0),
+        currentPrice: Number(document.getElementById('cryptoPrice').value || 0)
+      });
+      ['cryptoName','cryptoSymbol','cryptoQty','cryptoCost','cryptoPrice'].forEach(id => document.getElementById(id).value = '');
+      renderAll();
+    });
+
+    document.getElementById('assetSummaryForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.cash.bank = Number(document.getElementById('bankCash').value || 0);
+      state.cash.safe = Number(document.getElementById('safeCash').value || 0);
+      state.cardValue = Number(document.getElementById('cardValue').value || 0);
+      renderAll();
+    });
+
+    document.getElementById('valuableForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.valuables.push({
+        id: crypto.randomUUID(),
+        name: document.getElementById('valuableName').value.trim(),
+        category: document.getElementById('valuableCategory').value,
+        value: Number(document.getElementById('valuableValue').value || 0),
+        location: document.getElementById('valuableLocation').value.trim(),
+        serial: document.getElementById('valuableSerial').value.trim(),
+        notes: document.getElementById('valuableNotes').value.trim(),
+        showSerial: false
+      });
+      ['valuableName','valuableValue','valuableLocation','valuableSerial','valuableNotes'].forEach(id => document.getElementById(id).value = '');
+      renderAll();
+    });
+
+    document.getElementById('goalForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.goals.push({ id: crypto.randomUUID(), name: document.getElementById('goalName').value.trim(), target: Number(document.getElementById('goalTarget').value || 0), current: Number(document.getElementById('goalCurrent').value || 0) });
+      ['goalName','goalTarget','goalCurrent'].forEach(id => document.getElementById(id).value = '');
+      renderAll();
+    });
+
+    document.getElementById('vetForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.veteran.enableTsp = document.getElementById('enableTsp').value === 'true';
+      state.veteran.enableVa = document.getElementById('enableVa').value === 'true';
+      state.veteran.vaIncome = Number(document.getElementById('vaIncome').value || 0);
+      state.veteran.vaRating = document.getElementById('vaRating').value.trim();
+      renderAll();
+    });
+
+    document.getElementById('tspForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.veteran.tspBalance = Number(document.getElementById('tspBalance').value || 0);
+      state.veteran.tspContributionPct = Number(document.getElementById('tspContributionPct').value || 0);
+      state.veteran.tspMatchPct = Number(document.getElementById('tspMatchPct').value || 0);
+      state.veteran.tspMonthlyPay = Number(document.getElementById('tspMonthlyPay').value || 0);
+      state.veteran.tspFunds = {
+        G: Number(document.getElementById('tspG').value || 0),
+        F: Number(document.getElementById('tspF').value || 0),
+        C: Number(document.getElementById('tspC').value || 0),
+        S: Number(document.getElementById('tspS').value || 0),
+        I: Number(document.getElementById('tspI').value || 0)
+      };
+      renderAll();
+    });
+
+    document.getElementById('clearTransactions').addEventListener('click', () => {
+      if (confirm('Delete all saved transactions?')) { state.transactions = []; renderAll(); }
+    });
+    document.getElementById('clearBudgets').addEventListener('click', () => {
+      if (confirm('Clear all budget plans?')) { state.budgets = {}; renderAll(); }
+    });
+
+    window.removeTransaction = id => { state.transactions = state.transactions.filter(t => t.id !== id); renderAll(); };
+    window.removeHolding = id => { state.holdings = state.holdings.filter(h => h.id !== id); renderAll(); };
+    window.removeCrypto = id => { state.cryptoHoldings = state.cryptoHoldings.filter(h => h.id !== id); renderAll(); };
+    window.removeValuable = id => { state.valuables = state.valuables.filter(v => v.id !== id); renderAll(); };
+    window.toggleSerial = id => { state.valuables = state.valuables.map(v => v.id === id ? { ...v, showSerial: !v.showSerial } : v); renderAll(); };
+    window.removeGoal = id => { state.goals = state.goals.filter(g => g.id !== id); renderAll(); };
+
+    document.getElementById('exportBackupBtn').addEventListener('click', exportBackup);
+    document.getElementById('exportCsvBtn').addEventListener('click', exportInventoryCsv);
+    document.getElementById('importBackupInput').addEventListener('change', async event => {
+      const [file] = event.target.files || [];
+      if (file) await importBackup(file);
+      event.target.value = '';
+    });
+
+    setupInstallPrompt();
+    registerServiceWorker();
+    renderAll();
+  </script>
+</body>
+</html>
