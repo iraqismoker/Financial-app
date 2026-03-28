@@ -287,23 +287,29 @@
         <section class="card span-7">
           <div class="section-head"><h2>Plan vs Spent vs Remaining</h2><span class="small">Track what you planned to spend and what is left</span></div>
           <form id="budgetPlanForm">
-            <div class="four-col">
+            <div class="three-col">
               <label>Category
                 <select id="budgetCategory">
                   <option>Housing</option><option>Utilities</option><option>Food</option><option>Restaurants</option><option>Transportation</option><option>Insurance</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Cards/Hobby</option><option>Debt</option><option>Other</option><option value="__custom__">Custom / Type your own</option>
                 </select>
                 <input type="text" id="budgetCategoryCustom" class="custom-field" placeholder="Type category manually" />
               </label>
-              <label>Planned Amount<input type="number" id="budgetAmount" min="0" step="0.01" /></label>
-              <label>&nbsp;<button type="submit">Save Category Plan</button></label>
-              <label>&nbsp;<button type="button" class="secondary" id="clearBudgets">Clear Plans</button></label>
+              <label>Planned Amount<input type="number" id="budgetAmount" min="0" step="0.01" placeholder="0.00" /></label>
+              <label>Actual Spent Amount<input type="number" id="budgetSpentInput" min="0" step="0.01" placeholder="Optional manual spent" /></label>
             </div>
+            <div class="toggle-row">
+              <input type="checkbox" id="budgetCarryOver" />
+              <label for="budgetCarryOver" style="display:inline;color:var(--text);">Carry this category into next month</label>
+            </div>
+            <div class="inline-actions">
+              <button type="submit">Save Category Plan</button>
+              <button type="button" class="secondary" id="clearBudgets">Clear Plans</button>
+              <button type="button" class="secondary" id="resetMonthlyBudget">Monthly Reset</button>
+            </div>
+            <div class="note-box">You can now enter Planned and Actual Spent in one setup. Remaining is calculated automatically.</div>
           </form>
           <div class="summary-list section-gap" id="budgetRollup"></div>
-          <table>
-            <thead><tr><th>Category</th><th>Planned</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead>
-            <tbody id="budgetPlanTable"></tbody>
-          </table>
+          <div class="budget-cards" id="budgetPlanCards"></div>
         </section>
 
         <section class="card span-12">
@@ -841,26 +847,112 @@
         </tr>`).join('');
     }
 
+
+    function manualSpentForCategory(category) {
+      return Number((state.budgetMeta?.[category]?.manualSpent) || 0);
+    }
+
+    function carryOverEnabled(category) {
+      return Boolean(state.budgetMeta?.[category]?.carryOver);
+    }
+
+    function totalSpentForCategory(category) {
+      const txSpent = state.transactions
+        .filter(t => t.type === 'expense' && t.category === category)
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      return txSpent + manualSpentForCategory(category);
+    }
+
+    function resetMonthlyBudget() {
+      const nextMeta = {};
+      Object.keys(state.budgets || {}).forEach(cat => {
+        if (carryOverEnabled(cat)) {
+          nextMeta[cat] = { manualSpent: 0, carryOver: true };
+        }
+      });
+      state.transactions = [];
+      state.budgetMeta = nextMeta;
+      renderAll();
+    }
+
+    function editBudgetCategory(category) {
+      const planned = Number(state.budgets?.[category] || 0);
+      const manualSpent = manualSpentForCategory(category);
+      const carry = carryOverEnabled(category);
+      addOptionIfMissing('budgetCategory', category);
+      document.getElementById('budgetCategory').value = category;
+      document.getElementById('budgetAmount').value = planned || '';
+      document.getElementById('budgetSpentInput').value = manualSpent || '';
+      document.getElementById('budgetCarryOver').checked = carry;
+      document.getElementById('budgetCategoryCustom').value = '';
+      wireCustomSelect('budgetCategory', 'budgetCategoryCustom');
+      document.getElementById('budgetCategory').scrollIntoView({behavior:'smooth', block:'center'});
+    }
+
+    function deleteBudgetCategory(category) {
+      delete state.budgets[category];
+      if (state.budgetMeta) delete state.budgetMeta[category];
+      renderAll();
+    }
+
     function renderBudgetPlan() {
-      const tbody = document.getElementById('budgetPlanTable');
-      const categories = Array.from(new Set([...Object.keys(state.budgets), ...state.transactions.filter(t=>t.type==='expense').map(t=>t.category)])).sort();
-      const spentByCategory = {};
-      state.transactions.filter(t=>t.type==='expense').forEach(t => spentByCategory[t.category] = (spentByCategory[t.category] || 0) + Number(t.amount));
-      const totalPlanned = Object.values(state.budgets).reduce((s,v)=>s + Number(v), 0);
-      const totalSpent = Object.values(spentByCategory).reduce((s,v)=>s + Number(v), 0);
+      const cards = document.getElementById('budgetPlanCards');
+      const categories = Array.from(new Set([
+        ...Object.keys(state.budgets || {}),
+        ...Object.keys(state.budgetMeta || {}),
+        ...state.transactions.filter(t => t.type === 'expense').map(t => t.category)
+      ])).sort();
+
+      const totalPlanned = Object.values(state.budgets || {}).reduce((s, v) => s + Number(v || 0), 0);
+      const totalSpent = categories.reduce((sum, cat) => sum + totalSpentForCategory(cat), 0);
+      const totalRemaining = totalPlanned - totalSpent;
+
       document.getElementById('budgetRollup').innerHTML = `
         <div class="summary-item"><div class="recommend-line"><strong>Total Planned</strong><strong>${currency(totalPlanned)}</strong></div></div>
         <div class="summary-item"><div class="recommend-line"><strong>Total Spent</strong><strong>${currency(totalSpent)}</strong></div></div>
-        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalPlanned - totalSpent >= 0 ? 'good' : 'bad'}">${currency(totalPlanned - totalSpent)}</strong></div></div>
+        <div class="summary-item"><div class="recommend-line"><strong>Remaining in Plan</strong><strong class="${totalRemaining >= 0 ? 'good' : 'bad'}">${currency(totalRemaining)}</strong></div></div>
       `;
-      if (!categories.length) { tbody.innerHTML = `<tr><td colspan="5" class="muted">Add budget plans or expenses to see this section.</td></tr>`; return; }
-      tbody.innerHTML = categories.map(cat => {
-        const planned = Number(state.budgets[cat] || 0);
-        const spent = Number(spentByCategory[cat] || 0);
+
+      if (!categories.length) {
+        cards.innerHTML = `<div class="allocation-item muted">Add a category plan to see Planned, Spent, and Remaining together.</div>`;
+        return;
+      }
+
+      cards.innerHTML = categories.map(cat => {
+        const planned = Number((state.budgets || {})[cat] || 0);
+        const spent = totalSpentForCategory(cat);
         const remaining = planned - spent;
+        const percent = planned > 0 ? Math.min((spent / planned) * 100, 100) : 0;
+        const carry = carryOverEnabled(cat);
         const status = planned === 0 ? 'No plan set' : remaining < 0 ? 'Over budget' : remaining < planned * 0.2 ? 'Near limit' : 'On track';
         const klass = status === 'Over budget' ? 'bad' : status === 'Near limit' ? 'warn' : 'good';
-        return `<tr><td>${cat}</td><td>${currency(planned)}</td><td>${currency(spent)}</td><td class="${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</td><td class="${klass}">${status}</td></tr>`;
+        return `
+          <div class="budget-category-card">
+            <div class="recommend-line">
+              <strong>${cat}</strong>
+              <strong class="${klass}">${status}</strong>
+            </div>
+            <div class="budget-metrics">
+              <div class="budget-metric">
+                <div class="label">Planned</div>
+                <div class="value">${currency(planned)}</div>
+              </div>
+              <div class="budget-metric">
+                <div class="label">Spent</div>
+                <div class="value">${currency(spent)}</div>
+              </div>
+              <div class="budget-metric">
+                <div class="label">Remaining</div>
+                <div class="value ${remaining >= 0 ? 'good' : 'bad'}">${currency(remaining)}</div>
+              </div>
+            </div>
+            <div class="budget-bar"><span style="width:${percent}%"></span></div>
+            <div class="small" style="margin-top:10px;">Carry over next month: ${carry ? 'Yes' : 'No'}</div>
+            <div class="inline-actions">
+              <button type="button" class="secondary" onclick="editBudgetCategory('${cat.replace(/'/g, "\'")}')">Edit</button>
+              <button type="button" class="danger" onclick="deleteBudgetCategory('${cat.replace(/'/g, "\'")}')">Delete</button>
+            </div>
+          </div>`;
       }).join('');
     }
 
@@ -1242,9 +1334,18 @@
     document.getElementById('budgetPlanForm').addEventListener('submit', e => {
       e.preventDefault();
       const budgetCategory = getSelectOrCustom('budgetCategory', 'budgetCategoryCustom') || 'Other';
-      state.budgets[budgetCategory] = Number(document.getElementById('budgetAmount').value || 0);
+      const planned = Number(document.getElementById('budgetAmount').value || 0);
+      const manualSpent = Number(document.getElementById('budgetSpentInput').value || 0);
+      const carryOver = document.getElementById('budgetCarryOver').checked;
+
+      state.budgets[budgetCategory] = planned;
+      state.budgetMeta = state.budgetMeta || {};
+      state.budgetMeta[budgetCategory] = { manualSpent, carryOver };
+
       addOptionIfMissing('budgetCategory', budgetCategory);
       document.getElementById('budgetAmount').value = '';
+      document.getElementById('budgetSpentInput').value = '';
+      document.getElementById('budgetCarryOver').checked = false;
       document.getElementById('budgetCategory').value = 'Housing';
       document.getElementById('budgetCategoryCustom').value = '';
       wireCustomSelect('budgetCategory', 'budgetCategoryCustom');
@@ -1368,10 +1469,19 @@
       if (confirm('Delete all saved transactions?')) { state.transactions = []; renderAll(); }
     });
     document.getElementById('clearBudgets').addEventListener('click', () => {
-      if (confirm('Clear all budget plans?')) { state.budgets = {}; renderAll(); }
+      if (confirm('Clear all budget plans?')) {
+        state.budgets = {};
+        state.budgetMeta = {};
+        renderAll();
+      }
+    });
+    document.getElementById('resetMonthlyBudget').addEventListener('click', () => {
+      if (confirm('Reset monthly spent amounts and transactions? Carry-over categories will stay.')) resetMonthlyBudget();
     });
 
     window.removeTransaction = id => { state.transactions = state.transactions.filter(t => t.id !== id); renderAll(); };
+    window.editBudgetCategory = editBudgetCategory;
+    window.deleteBudgetCategory = deleteBudgetCategory;
     window.removeHolding = id => { state.holdings = state.holdings.filter(h => h.id !== id); renderAll(); };
     window.removeCrypto = id => { state.cryptoHoldings = state.cryptoHoldings.filter(h => h.id !== id); renderAll(); };
     window.removeValuable = id => { state.valuables = state.valuables.filter(v => v.id !== id); renderAll(); };
